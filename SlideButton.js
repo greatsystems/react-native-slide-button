@@ -34,16 +34,8 @@ export class SlideButton extends Component {
   /* Button movement of > 40% is considered a successful slide by default*/
   isSlideSuccessful() {
     var slidePercent = this.props.successfulSlidePercent || 40;
-    var successfulSlideWidth = this.buttonWidth * slidePercent / 100;
-    if (!this.props.slideDirection) {
-      return this.state.dx > this.props.successfulSlideWidth;  // Defaults to right slide
-    } else if (this.props.slideDirection === SlideDirection.RIGHT) {
-      return this.state.dx > this.props.successfulSlideWidth;
-    } else if (this.props.slideDirection === SlideDirection.LEFT) {
-      return this.state.dx < (-1 * this.props.successfulSlideWidth);
-    } else if (this.props.slideDirection === SlideDirection.BOTH) {
-      return Math.abs(this.state.dx) > this.props.successfulSlideWidth;
-    }
+    var successfulSlideWidth = 150;
+    return this.state.dx > successfulSlideWidth
   }
 
   onSlide(x) {
@@ -68,7 +60,7 @@ export class SlideButton extends Component {
       onPanResponderMove: (evt, gestureState) => {
         self.setState({
           locationX: evt.nativeEvent.locationX,
-          dx: gestureState.dx
+          dx: Math.max(0,Math.min(gestureState.dx,190))
         });
         self.onSlide(gestureState.dx);
       },
@@ -76,21 +68,13 @@ export class SlideButton extends Component {
       onPanResponderRelease: (evt, gestureState) => {
         if (this.isSlideSuccessful()) {
           // Move the button out
-          this.moveButtonOut(() => {
-            self.setState({ swiped: true });
-            self.props.onSlideSuccess();
-          });
-
-          // Slide it back in after 1 sec
-          setTimeout(() => {
-            self.moveButtonIn(() => {
-              self.setState({
-                released: false,
-                dx: self.state.initialX
-              });
+          this.snapToPosition(() => {
+            self.setState({
+              released: false,
+              dx: self.state.initialX
             });
-          }, 1000);
-
+          });
+          self.props.onSlideSuccess();
         } else {
           this.snapToPosition(() => {
             self.setState({
@@ -204,7 +188,7 @@ export class SlideButton extends Component {
     }
 
     return (
-      <View style={{width: this.props.width, height: this.props.height, overflow:  'hidden'}}>
+      <View style={{width: this.props.width, height: this.props.height}}>
         <View style={styles.container} {...this.panResponder.panHandlers}>
           { button }
         </View>
@@ -213,11 +197,6 @@ export class SlideButton extends Component {
   }
 }
 
-SlideButton.propTypes = {
-    width: React.PropTypes.number.isRequired,
-    height: React.PropTypes.number.isRequired,
-    successfulSlidePercent: React.PropTypes.number
-};
 
 const styles = StyleSheet.create({
   container: {
